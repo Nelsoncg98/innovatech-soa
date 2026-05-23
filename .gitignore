@@ -1,0 +1,48 @@
+# ============================================================================
+# 📁 .gitignore - INNOVATECH SOA
+# ============================================================================
+
+# ☕ Java / Spring Boot (Maven)
+target/
+*.class
+*.jar
+*.war
+*.ear
+.mvn/wrapper/maven-wrapper.jar
+.metadata/
+bin/
+tmp/
+
+# 🖥️ .NET / C# (POS Client)
+bin/
+obj/
+*.suo
+*.user
+*.sln.docstates
+*.suo
+[Dd]ebug/
+[Rr]elease/
+
+# ⚙️ Contenedores y Bases de Datos
+sqlserver_data/
+mssql_data/
+docker-compose.override.yml
+
+# 🛠️ Configuraciones de IDEs (VS Code, IntelliJ, Eclipse)
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+.classpath
+.project
+.settings/
+.factorypath
+
+# 📓 Logs e Historiales
+*.log
+logs/
+.gradle/
+.settings/
+.recommenders/
+.history/
