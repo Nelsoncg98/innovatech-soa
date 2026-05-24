@@ -1,0 +1,101 @@
+# ============================================================================
+# 🐋 Docker Compose Consolidado — Sistema Omnicanal InnovaTech SOA
+# Basado en las directrices y estilo de diseño del docente Narro Andrade
+# ============================================================================
+# CONCEPTO SOA: cada microservicio se compila y despliega de forma autónoma,
+# comunicándose en una red interna privada y aislada.
+#
+# Uso:
+#   docker-compose up --build -d     # Compilar y levantar toda la topologia
+#   docker-compose down              # Apagar y limpiar contenedores y red
+# ============================================================================
+
+version: '3.8'
+
+services:
+
+  # 🗄️ Capa de Datos: Base de Datos ERP Core (SQL Server)
+  sap-erp-db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sap-erp-db
+    ports:
+      - "1433:1433"
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=InnovaTech_2026!
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+      - ./infraestructura/sql:/usr/config # Mapea los scripts SQL de inicializacion
+    networks:
+      - innovatech-network
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "InnovaTech_2026!", "-C", "-Q", "SELECT 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # 📦 Entity Service: Microservicio de Inventario
+  inventory-service:
+    build: ./inventory-service
+    container_name: inventory-service
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:sqlserver://sap-erp-db:1433;databaseName=KardexSAP;encrypt=true;trustServerCertificate=true
+      - SPRING_DATASOURCE_USERNAME=sa
+      - SPRING_DATASOURCE_PASSWORD=InnovaTech_2026!
+    depends_on:
+      sap-erp-db:
+        condition: service_healthy # Espera de forma inteligente a que SQL Server este listo
+    networks:
+      - innovatech-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s # Spring Boot tarda ~20s en arrancar en el contenedor
+
+  # 🎼 Task Service: Orquestador de Ventas Híbrido
+  sales-orchestrator:
+    build: ./sales-orchestrator
+    container_name: sales-orchestrator
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:sqlserver://sap-erp-db:1433;databaseName=KardexSAP;encrypt=true;trustServerCertificate=true
+      - SPRING_DATASOURCE_USERNAME=sa
+      - SPRING_DATASOURCE_PASSWORD=InnovaTech_2026!
+      # LOOSE COUPLING: inyeccion de red dinamica usando el nombre de contenedor (DNS interno de Docker)
+      - INVENTORY_SERVICE_URL=http://inventory-service:8081/api/v1/inventario
+    depends_on:
+      sap-erp-db:
+        condition: service_healthy
+      inventory-service:
+        condition: service_healthy
+    networks:
+      - innovatech-network
+
+  # 🌐 Middleware: Spring Cloud Gateway (API Gateway)
+  api-gateway:
+    build: ./api-gateway
+    container_name: innovatech-gateway
+    ports:
+      - "80:8080" # Expuesto al puerto 80 del host para acceso web inmediato
+    environment:
+      # LOOSE COUPLING: redirige el trafico a traves de la red privada de Docker
+      - INVENTORY_SERVICE_URL=http://inventory-service:8081
+      - SALES_ORCHESTRATOR_URL=http://sales-orchestrator:8082
+    depends_on:
+      inventory-service:
+        condition: service_healthy
+    networks:
+      - innovatech-network
+
+volumes:
+  sqlserver_data:
+
+networks:
+  innovatech-network:
+    driver: bridge

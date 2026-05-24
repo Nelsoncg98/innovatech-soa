@@ -1,0 +1,25 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    gateway:
+      routes:
+        # 📦 RUTA 1: Redirección al Microservicio de Inventario (Entity Service)
+        - id: inventory-service
+          uri: ${INVENTORY_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/v1/inventario/**
+          filters:
+            - StripPrefix=0 # Mantiene la ruta exacta al reenviar la peticion
+
+        # 🎼 RUTA 2: Redirección al Orquestador de Ventas (Task Service)
+        - id: sales-orchestrator
+          uri: ${SALES_ORCHESTRATOR_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/v1/ventas/**
+          filters:
+            - StripPrefix=0 # Mantiene la ruta exacta al reenviar la peticion

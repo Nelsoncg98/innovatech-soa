@@ -1,0 +1,26 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: sales-orchestrator
+
+  datasource:
+    url: jdbc:sqlserver://localhost:1433;databaseName=KardexSAP;encrypt=true;trustServerCertificate=true
+    username: sa
+    password: InnovaTech_2026!
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate # Solo valida que las tablas de ventas del script SQL existan
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: true       # Muestra las consultas SQL reales por consola
+    properties:
+      hibernate:
+        format_sql: true # Formatea de manera legible las consultas SQL
+
+inventory:
+  service:
+    url: ${INVENTORY_SERVICE_URL:http://localhost:8081/api/v1/inventario}
