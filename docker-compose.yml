@@ -25,7 +25,7 @@ services:
       - MSSQL_SA_PASSWORD=InnovaTech_2026!
     volumes:
       - sqlserver_data:/var/opt/mssql
-      - ./infraestructura/sql:/usr/config # Mapea los scripts SQL de inicializacion
+      - ./schema.sql:/usr/config/schema.sql # Mapea el script SQL de inicializacion en la raiz
     networks:
       - innovatech-network
     healthcheck:
