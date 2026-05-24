@@ -35,6 +35,27 @@ services:
       retries: 5
       start_period: 20s
 
+  # 🛠️ Inicializador de Base de Datos (Provisionamiento Automático)
+  db-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: db-init
+    environment:
+      - ACCEPT_EULA=Y
+    volumes:
+      - ./schema.sql:/usr/config/schema.sql
+    depends_on:
+      sap-erp-db:
+        condition: service_healthy
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        echo "=== AGUARDANDO INICIALIZACION DE DATOS EN SQL SERVER ==="
+        /opt/mssql-tools18/bin/sqlcmd -S sap-erp-db -U sa -P "InnovaTech_2026!" -C -i /usr/config/schema.sql
+        echo "=== INICIALIZACION DE BASE DE DATOS FINALIZADA EXITOSAMENTE ==="
+    networks:
+      - innovatech-network
+
   # 📦 Entity Service: Microservicio de Inventario
   inventory-service:
     build: ./inventory-service
@@ -47,7 +68,9 @@ services:
       - SPRING_DATASOURCE_PASSWORD=InnovaTech_2026!
     depends_on:
       sap-erp-db:
-        condition: service_healthy # Espera de forma inteligente a que SQL Server este listo
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully # Espera a que la base de datos este inicializada con tablas
     networks:
       - innovatech-network
     healthcheck:
@@ -72,6 +95,8 @@ services:
     depends_on:
       sap-erp-db:
         condition: service_healthy
+      db-init:
+        condition: service_completed_successfully # Espera a que las tablas existan
       inventory-service:
         condition: service_healthy
     networks:

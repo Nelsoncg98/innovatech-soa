@@ -12,6 +12,7 @@ spring:
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
 
   jpa:
+    database-platform: org.hibernate.dialect.SQLServerDialect
     hibernate:
       ddl-auto: validate # Solo valida que las tablas creadas por nuestro script existan
       naming:
